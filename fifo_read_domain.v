@@ -1,7 +1,9 @@
-parameter Datawidth = 8;
-parameter Addresswidth = 3;
 
-module fifo_read_domain(
+module fifo_read_domain #(
+                            parameter Datawidth = 8,
+                            parameter Addresswidth = 3
+                        )
+                        (
                             input [Addresswidth:0] write_ptr_grey_sync,
                             input read_clk,
                             input read_reset,
@@ -9,7 +11,7 @@ module fifo_read_domain(
                             output [Addresswidth-1:0] read_address,
                             output [Addresswidth:0]   read_ptr_grey,
                             output empty
-);
+                        );
 
 reg [Addresswidth:0]read_ptr;
 wire [Addresswidth:0]read_ptr_next;
