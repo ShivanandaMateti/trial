@@ -1,9 +1,10 @@
-parameter Datawidth = 8;
-parameter Addresswidth = 3;
-
-module fifo_memory(
+module fifo_memory #(
+                        parameter Datawidth = 8,
+                        parameter Addresswidth = 3
+                    )
+                    (
                         input write_clk,
-                        input write_reset,
+                        input write_enable,
                         input [Datawidth-1:0]write_data,
                         input [Addresswidth-1:0]write_address,
                         input [Addresswidth-1:0]read_address,
@@ -12,15 +13,19 @@ module fifo_memory(
                    );
 
 
-localparam depth;
-assign depth = 1 << Addresswidth;
-reg [Datawidth-1:0] memory [depth-1:0];
+localparam depth = 1 << Addresswidth;
+
+
+reg [Datawidth-1:0] memory [0 : depth-1];
 
 assign read_data = memory[read_address];
 
-always@(posedge write_clk )
+always@(posedge write_clk)
     begin
-        if(!full)
+     if(write_enable && !full)
             memory[write_address] <= write_data;
     end
+
+
+
 endmodule
