@@ -11,19 +11,19 @@ module read_ptr_sync #(
 
 wire [Addresswidth:0] t1;
 
-D_ff  #(Addresswidth) S1 (
-                            .clk(write_clk),
-                            .reset(write_reset),
-                            .d(read_ptr_grey),
-                            .q(t1)
-                         );
+D_ff  #(.Addresswidth(Addresswidth)) S1 (
+                                           .clk(write_clk),
+                                           .reset(write_reset),
+                                           .d(read_ptr_grey),
+                                           .q(t1)
+                                        );
 
-D_ff  #(Addresswidth) S2 (
-                            .clk(write_clk),
-                            .reset(write_reset),
-                            .d(t1),
-                            .q(read_ptr_grey_sync)
-                         );
+D_ff  #(.Addresswidth(Addresswidth)) S2 (
+                                           .clk(write_clk),
+                                           .reset(write_reset),
+                                           .d(t1),
+                                           .q(read_ptr_grey_sync)
+                                        );
 
 endmodule
 
