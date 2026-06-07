@@ -47,7 +47,7 @@ generate for(i=0;i<Addresswidth+1;i=i+1)
         if(i==0)
         assign grey[Addresswidth] = binary [ Addresswidth];
         else
-        assign grey[Addresswidth-i] = grey[Addresswidth-i-1] ^ binary[Addresswidth-i];
+        assign grey[Addresswidth-i] = grey[Addresswidth-i+1] ^ binary[Addresswidth-i];
         end
 endgenerate
 endmodule 
