@@ -1,6 +1,5 @@
 
 module fifo_read_domain #(
-                            parameter Datawidth = 8,
                             parameter Addresswidth = 3
                         )
                         (
@@ -44,7 +43,7 @@ begin
         empty_reg <= (read_ptr_grey_next == write_ptr_grey_sync);
 end
 
-assign empty = empty_reg;
+assign empty = empty_reg;  // to generate empty we use the grey code pointers only
 
 endmodule
 

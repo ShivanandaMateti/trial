@@ -1,5 +1,4 @@
 module fifo_write_domain#(
-                            parameter Datawidth = 8,
                             parameter Addresswidth = 3
                          )
                          (
@@ -45,7 +44,7 @@ begin
         full_reg <= ( write_ptr_grey_next == {~read_ptr_grey_sync[Addresswidth:Addresswidth-1],read_ptr_grey_sync[Addresswidth-2:0]});
 end
 
-assign full = full_reg;
+assign full = full_reg;  // to generate full we use the greycode pointers only 
 
 
 endmodule

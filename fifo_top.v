@@ -1,3 +1,4 @@
+`default_nettype none
 module fifo_top#(
                     parameter Datawidth = 8,
                     parameter Addresswidth = 3
@@ -15,6 +16,7 @@ module fifo_top#(
                     output full
                 );
 
+localparam depth = 1<<Addresswidth;
 
 wire [Addresswidth:0] read_ptr_grey;
 wire [Addresswidth:0] read_ptr_grey_sync;
@@ -30,7 +32,7 @@ read_ptr_sync  #(.Addresswidth(Addresswidth)) I1(
                                                     .read_ptr_grey_sync(read_ptr_grey_sync)
                                                 );
 
-fifo_write_domain  #(   .Datawidth(Datawidth),
+fifo_write_domain  #(   
                         .Addresswidth(Addresswidth)
                     )
                     I2
@@ -51,7 +53,7 @@ write_ptr_sync  #(.Addresswidth(Addresswidth)) I3(
                                                     .write_ptr_grey_sync(write_ptr_grey_sync)
                                                  );
 
-fifo_read_domain   #(   .Datawidth(Datawidth),
+fifo_read_domain   #(   
                         .Addresswidth(Addresswidth)
                     )
                     I4
@@ -77,7 +79,6 @@ fifo_memory   #(
                     .write_address(write_address),
                     .read_address(read_address),
                     .full(full),
-                    .empty(empty),
                     .read_data(read_data)
                );
 
@@ -143,7 +144,6 @@ endmodule
 
 
 module fifo_write_domain#(
-                            parameter Datawidth = 8,
                             parameter Addresswidth = 3
                          )
                          (
@@ -240,7 +240,6 @@ endmodule
 
 
 module fifo_read_domain #(
-                            parameter Datawidth = 8,
                             parameter Addresswidth = 3
                         )
                         (
@@ -303,7 +302,6 @@ module fifo_memory #(
                         input [Addresswidth-1:0]write_address,
                         input [Addresswidth-1:0]read_address,
                         input full,
-                        input empty,
                         output [Datawidth-1:0]read_data
                    );
 
@@ -313,7 +311,7 @@ localparam depth = 1 << Addresswidth;
 
 reg [Datawidth-1:0] memory [0 : depth-1];
 
-assign read_data = (empty) ? 0 : memory[read_address];
+assign read_data = memory[read_address];
 
 always@(posedge write_clk)
     begin
