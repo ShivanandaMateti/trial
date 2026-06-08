@@ -9,6 +9,7 @@ module fifo_memory #(
                         input [Addresswidth-1:0]write_address,
                         input [Addresswidth-1:0]read_address,
                         input full,
+                        input empty,
                         output [Datawidth-1:0]read_data
                    );
 
