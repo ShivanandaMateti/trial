@@ -77,6 +77,7 @@ fifo_memory   #(
                     .write_address(write_address),
                     .read_address(read_address),
                     .full(full),
+                    .empty(empty),
                     .read_data(read_data)
                );
 
@@ -175,8 +176,8 @@ end
 
 assign write_address = write_ptr[Addresswidth-1:0];
 
-B_G #(Addresswidth) W1 (write_ptr,write_ptr_grey);
-B_G #(Addresswidth) W2 (write_ptr_next,write_ptr_grey_next);
+B_G #(.Addresswidth(Addresswidth)) W1 (write_ptr,write_ptr_grey);
+B_G #(.Addresswidth(Addresswidth)) W2 (write_ptr_next,write_ptr_grey_next);
 
 reg full_reg;
 
@@ -269,8 +270,8 @@ end
 
 assign read_address = read_ptr[Addresswidth-1:0];
 
-B_G  #(Addresswidth)R1(read_ptr,read_ptr_grey);
-B_G  #(Addresswidth)R2(read_ptr_next,read_ptr_grey_next);
+B_G  #(.Addresswidth(Addresswidth))R1(read_ptr,read_ptr_grey);
+B_G  #(.Addresswidth(Addresswidth))R2(read_ptr_next,read_ptr_grey_next);
 
 
 reg empty_reg;
@@ -302,6 +303,7 @@ module fifo_memory #(
                         input [Addresswidth-1:0]write_address,
                         input [Addresswidth-1:0]read_address,
                         input full,
+                        input empty,
                         output [Datawidth-1:0]read_data
                    );
 
@@ -311,7 +313,7 @@ localparam depth = 1 << Addresswidth;
 
 reg [Datawidth-1:0] memory [0 : depth-1];
 
-assign read_data = memory[read_address];
+assign read_data = (empty) ? 0 : memory[read_address];
 
 always@(posedge write_clk)
     begin
