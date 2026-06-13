@@ -76,10 +76,10 @@ task check_read;
         if (q_head == q_tail) begin
             $display("ERROR [T%0d] Read data 0x%0h but queue is empty!", test_id, actual);
         end else if (actual !== ref_queue[q_head]) begin
-            $display("FAIL  [T%0d] Expected 0x%0h  Got 0x%0h",
+            $display("FAIL [T%0d] Expected:0x%0h  Got:0x%0h",
                      test_id, ref_queue[q_head], actual);
         end else begin
-            $display("PASS  [T%0d] Read 0x%0h OK", test_id, actual);
+            $display("PASS [T%0d] Expected:0x%0h  Got:0x%0h",test_id,ref_queue[q_head],actual);
         end
         q_head = q_head + 1;
     end
@@ -157,13 +157,13 @@ integer fail_cnt = 0;
 task assert_eq;
     input [DWIDTH-1:0] got;
     input [DWIDTH-1:0] exp;
-    input [127:0]      msg;
+    input [511:0]      msg;
     begin
         if (got === exp) begin
-            $display("  PASS  %s : 0x%0h", msg, got);
+            $display("PASS! %0s \nwe got 0x%0h", msg, got);
             pass_cnt = pass_cnt + 1;
         end else begin
-            $display("  FAIL  %s : expected 0x%0h  got 0x%0h", msg, exp, got);
+            $display("FAIL! %0s \nexpected : 0x%0h\n got : 0x%0h", msg, exp, got);
             fail_cnt = fail_cnt + 1;
         end
     end
@@ -172,13 +172,14 @@ endtask
 task assert_flag;
     input        got;
     input        exp;
-    input [127:0] msg;
+    input [511:0] msg;
     begin
         if (got === exp) begin
-            $display("  PASS  %s = %0b", msg, got);
+            $display("PASS! %0s \nflag = %0b", msg,got);
             pass_cnt = pass_cnt + 1;
-        end else begin
-            $display("  FAIL  %s : expected %0b  got %0b", msg, exp, got);
+        end 
+        else begin
+            $display("FAIL! %0s\nexpected flag : %0b\nflag got : %0b", msg, exp, got);
             fail_cnt = fail_cnt + 1;
         end
     end
@@ -207,7 +208,7 @@ initial begin
     $display("\n═══ TEST 1 : Reset behaviour ═══");
     apply_reset;
     assert_flag(empty, 1, "empty after reset");
-    assert_flag(full,  0, "full  after reset");
+    assert_flag(full,  0, "not full after reset");
 
     // ════════════════════════════════════════════════════════
     //  TEST 2 : Read from empty FIFO (should stay empty)
@@ -218,7 +219,7 @@ initial begin
     @(posedge read_clk); #1;
     read_enable = 0;
     rclk_delay(4);
-    assert_flag(empty, 1, "still empty after spurious read");
+    assert_flag(empty, 1,"still empty after spurious read");
 
     // ════════════════════════════════════════════════════════
     //  TEST 3 : Single write then single read
@@ -227,12 +228,12 @@ initial begin
     write_one(8'hA5);
     push_ref(8'hA5);
     rclk_delay(6);   // let pointer cross clock domain
-    assert_flag(empty, 0, "not empty after 1 write");
+    assert_flag(empty,0,"not empty after 1 write");
 
     read_one(rdata);
     rclk_delay(6);
     check_read(rdata, 3);
-    assert_flag(empty, 1, "empty after reading back 1 entry");
+    assert_flag(empty, 1,"empty after reading back 1 entry");
 
     // ════════════════════════════════════════════════════════
     //  TEST 4 : Fill FIFO completely → check full flag
@@ -311,6 +312,8 @@ initial begin
     // ════════════════════════════════════════════════════════
     $display("\n═══ TEST 8 : Pointer wrap-around ═══");
     apply_reset;
+    q_head = 0;
+    q_tail = 0;
     // Batch 1 – fill and drain
     for (i = 0; i < DEPTH; i = i+1) begin
         write_one(8'hB0 + i[DWIDTH-1:0]);
@@ -400,7 +403,7 @@ initial begin
     read_one(rdata);
     rclk_delay(8);
     check_read(rdata, 11);
-    assert_flag(full, 0, "not full after reading 1 from full");
+    assert_flag(full, 0,"not full after reading 1 from full");
 
     // Read remaining
     for (i = 0; i < DEPTH-1; i = i+1) begin
@@ -436,6 +439,8 @@ initial begin
             end
         end
     join
+    rclk_delay(8);
+    assert_flag(empty, 1, "empty after slow-writer test");
 
     // ════════════════════════════════════════════════════════
     //  TEST 13 : Fast writer, slow reader
