@@ -3,30 +3,29 @@
 
 module fifo_tb;
 
-// ─────────────────────────────────────────────────────────────
-//  Parameters – match DUT defaults
-// ─────────────────────────────────────────────────────────────
+//  Parameters 
+
 parameter DWIDTH  = 8;
 parameter AWIDTH  = 3;          // depth = 2^3 = 8 entries
 parameter DEPTH   = 1 << AWIDTH;
 
-// ─────────────────────────────────────────────────────────────
+
 //  DUT signals
-// ─────────────────────────────────────────────────────────────
-reg  [DWIDTH-1:0] write_data;
+
 reg               write_enable;
 reg               write_clk;
 reg               write_reset;
 reg               read_enable;
 reg               read_clk;
 reg               read_reset;
+reg  [DWIDTH-1:0] write_data;
 wire [DWIDTH-1:0] read_data;
 wire              empty;
 wire              full;
 
-// ─────────────────────────────────────────────────────────────
+
 //  DUT instantiation
-// ─────────────────────────────────────────────────────────────
+
 fifo_top #(
     .Datawidth (DWIDTH),
     .Addresswidth(AWIDTH)
@@ -43,20 +42,57 @@ fifo_top #(
     .full         (full)
 );
 
-// ─────────────────────────────────────────────────────────────
+
 //  Asymmetric clocks
 //  write_clk : 10 ns period  (100 MHz)
-//  read_clk  :  7 ns period  (~143 MHz) – intentionally different
-// ─────────────────────────────────────────────────────────────
+//  read_clk  :  7 ns period  (~143 MHz) – different time periods
+
 initial write_clk = 0;
 always  #5  write_clk = ~write_clk;
 
 initial read_clk  = 0;
 always  #3.5 read_clk  = ~read_clk;
 
-// ─────────────────────────────────────────────────────────────
+
+//  Pass / fail counter for score board
+
+integer pass_cnt = 0;
+integer fail_cnt = 0;
+
+task assert_data;
+    input [DWIDTH-1:0] got;
+    input [DWIDTH-1:0] exp;
+    input [511:0]      msg;
+    begin
+        if (got === exp) begin
+            $display("PASS! %0s \nexpected : 0x%0h\n got : 0x%0h", msg,exp,got);
+            pass_cnt = pass_cnt + 1;
+        end else begin
+            $display("FAIL! %0s \nexpected : 0x%0h\n got : 0x%0h", msg,exp,got);
+            fail_cnt = fail_cnt + 1;
+        end
+    end
+endtask
+
+task assert_flag;
+    input        got;
+    input        exp;
+    input [511:0] msg;
+    begin
+        if (got === exp) begin
+            $display("PASS! %0s \nexpected flag : %0b\nflag got : %0b", msg,exp,got);
+            pass_cnt = pass_cnt + 1;
+        end 
+        else begin
+            $display("FAIL! %0s\nexpected flag : %0b\nflag got : %0b", msg, exp, got);
+            fail_cnt = fail_cnt + 1;
+        end
+    end
+endtask
+
+
 //  Scoreboard – reference queue
-// ─────────────────────────────────────────────────────────────
+
 reg [DWIDTH-1:0] ref_queue [0:255];
 integer          q_head = 0;
 integer          q_tail = 0;
@@ -75,19 +111,22 @@ task check_read;
     begin
         if (q_head == q_tail) begin
             $display("ERROR [T%0d] Read data 0x%0h but queue is empty!", test_id, actual);
+            fail_cnt = fail_cnt + 1;
         end else if (actual !== ref_queue[q_head]) begin
             $display("FAIL [T%0d] Expected:0x%0h  Got:0x%0h",
                      test_id, ref_queue[q_head], actual);
+                     fail_cnt = fail_cnt + 1;
         end else begin
             $display("PASS [T%0d] Expected:0x%0h  Got:0x%0h",test_id,ref_queue[q_head],actual);
+            pass_cnt = pass_cnt + 1;
         end
         q_head = q_head + 1;
     end
 endtask
 
-// ─────────────────────────────────────────────────────────────
+
 //  Helper tasks
-// ─────────────────────────────────────────────────────────────
+
 
 // Write one word on the next rising write_clk edge
 task write_one;
@@ -148,51 +187,15 @@ task apply_reset;
     end
 endtask
 
-// ─────────────────────────────────────────────────────────────
-//  Pass / fail counter
-// ─────────────────────────────────────────────────────────────
-integer pass_cnt = 0;
-integer fail_cnt = 0;
 
-task assert_eq;
-    input [DWIDTH-1:0] got;
-    input [DWIDTH-1:0] exp;
-    input [511:0]      msg;
-    begin
-        if (got === exp) begin
-            $display("PASS! %0s \nwe got 0x%0h", msg, got);
-            pass_cnt = pass_cnt + 1;
-        end else begin
-            $display("FAIL! %0s \nexpected : 0x%0h\n got : 0x%0h", msg, exp, got);
-            fail_cnt = fail_cnt + 1;
-        end
-    end
-endtask
 
-task assert_flag;
-    input        got;
-    input        exp;
-    input [511:0] msg;
-    begin
-        if (got === exp) begin
-            $display("PASS! %0s \nflag = %0b", msg,got);
-            pass_cnt = pass_cnt + 1;
-        end 
-        else begin
-            $display("FAIL! %0s\nexpected flag : %0b\nflag got : %0b", msg, exp, got);
-            fail_cnt = fail_cnt + 1;
-        end
-    end
-endtask
-
-// ─────────────────────────────────────────────────────────────
 //  Main test sequence
-// ─────────────────────────────────────────────────────────────
+
 integer i;
 reg [DWIDTH-1:0] rdata;
 
 initial begin
-    // ── Initialise ──────────────────────────────────────────
+    // Initialise 
     write_data   = 0;
     write_enable = 0;
     read_enable  = 0;
@@ -202,18 +205,18 @@ initial begin
     $dumpfile("fifo_tb.vcd");
     $dumpvars(0, fifo_tb);
 
-    // ════════════════════════════════════════════════════════
+    
     //  TEST 1 : Reset behaviour
-    // ════════════════════════════════════════════════════════
-    $display("\n═══ TEST 1 : Reset behaviour ═══");
+    
+    $display("\nTEST 1 : Reset behaviour \n");
     apply_reset;
     assert_flag(empty, 1, "empty after reset");
     assert_flag(full,  0, "not full after reset");
 
-    // ════════════════════════════════════════════════════════
+    
     //  TEST 2 : Read from empty FIFO (should stay empty)
-    // ════════════════════════════════════════════════════════
-    $display("\n═══ TEST 2 : Read from empty FIFO ═══");
+   
+    $display("\nTEST 2 : Read from empty \n");
     @(negedge read_clk);
     read_enable = 1;
     @(posedge read_clk); #1;
@@ -221,10 +224,10 @@ initial begin
     rclk_delay(4);
     assert_flag(empty, 1,"still empty after spurious read");
 
-    // ════════════════════════════════════════════════════════
+  
     //  TEST 3 : Single write then single read
-    // ════════════════════════════════════════════════════════
-    $display("\n═══ TEST 3 : Single write / single read ═══");
+
+    $display("\nTEST 3 : Single write / single read \n");
     write_one(8'hA5);
     push_ref(8'hA5);
     rclk_delay(6);   // let pointer cross clock domain
@@ -235,10 +238,10 @@ initial begin
     check_read(rdata, 3);
     assert_flag(empty, 1,"empty after reading back 1 entry");
 
-    // ════════════════════════════════════════════════════════
+    
     //  TEST 4 : Fill FIFO completely → check full flag
-    // ════════════════════════════════════════════════════════
-    $display("\n═══ TEST 4 : Fill to full ═══");
+   
+    $display("\nTEST 4 : Fill to full\n");
     for (i = 0; i < DEPTH; i = i+1) begin
         write_one(i[DWIDTH-1:0]);
         push_ref(i[DWIDTH-1:0]);
@@ -246,10 +249,10 @@ initial begin
     wclk_delay(8);   // wait for full to propagate
     assert_flag(full, 1, "full after writing DEPTH entries");
 
-    // ════════════════════════════════════════════════════════
+    
     //  TEST 5 : Write while full (should be ignored)
-    // ════════════════════════════════════════════════════════
-    $display("\n═══ TEST 5 : Write while full (no-op) ═══");
+
+    $display("\nTEST 5 : Write while full (no-op) \n");
     @(negedge write_clk);
     write_data   = 8'hFF;
     write_enable = 1;
@@ -258,11 +261,11 @@ initial begin
     wclk_delay(4);
     assert_flag(full, 1, "still full after write attempt");
 
-    // ════════════════════════════════════════════════════════
+
     //  TEST 6 : Drain FIFO completely → check empty flag
     //           Also verifies FIFO order (FIFO not LIFO)
-    // ════════════════════════════════════════════════════════
-    $display("\n═══ TEST 6 : Drain to empty, verify order ═══");
+    
+    $display("\nTEST 6 : Drain to empty, verify order \n");
     for (i = 0; i < DEPTH; i = i+1) begin
         read_one(rdata);
         rclk_delay(4);
@@ -271,10 +274,10 @@ initial begin
     rclk_delay(8);
     assert_flag(empty, 1, "empty after draining all entries");
 
-    // ════════════════════════════════════════════════════════
+
     //  TEST 7 : Simultaneous write and read (FIFO non-empty)
-    // ════════════════════════════════════════════════════════
-    $display("\n═══ TEST 7 : Simultaneous write and read ═══");
+
+    $display("\nTEST 7 : Simultaneous write and read \n");
     // Pre-fill with 4 entries
     for (i = 0; i < 4; i = i+1) begin
         write_one(8'h10 + i[DWIDTH-1:0]);
@@ -304,17 +307,17 @@ initial begin
         end
     join
 
-    // ════════════════════════════════════════════════════════
+  
     //  TEST 8 : Write-pointer wrap-around
     //           Write DEPTH*2 words in two batches,
     //           draining between them, to exercise
     //           pointer wrap beyond 2^AWIDTH
-    // ════════════════════════════════════════════════════════
-    $display("\n═══ TEST 8 : Pointer wrap-around ═══");
+
+    $display("\nTEST 8 : Pointer wrap-around \n");
     apply_reset;
     q_head = 0;
     q_tail = 0;
-    // Batch 1 – fill and drain
+    // Batch 1 – write and read
     for (i = 0; i < DEPTH; i = i+1) begin
         write_one(8'hB0 + i[DWIDTH-1:0]);
         push_ref(8'hB0 + i[DWIDTH-1:0]);
@@ -325,7 +328,7 @@ initial begin
         rclk_delay(4);
         check_read(rdata, 8);
     end
-    // Batch 2 – fill and drain again (pointers have wrapped)
+    // Batch 2 – write and read again (pointers have wrapped)
     for (i = 0; i < DEPTH; i = i+1) begin
         write_one(8'hC0 + i[DWIDTH-1:0]);
         push_ref(8'hC0 + i[DWIDTH-1:0]);
@@ -339,25 +342,25 @@ initial begin
     rclk_delay(8);
     assert_flag(empty, 1, "empty after wrap-around drain");
 
-    // ════════════════════════════════════════════════════════
+   
     //  TEST 9 : Reset mid-operation
     //           Write some data, reset without reading,
     //           verify FIFO is empty and pointers are cleared
-    // ════════════════════════════════════════════════════════
-    $display("\n═══ TEST 9 : Reset mid-operation ═══");
+  
+    $display("\nTEST 9 : Sudden reset in between \n");
     for (i = 0; i < 3; i = i+1)
         write_one(8'hDE + i[DWIDTH-1:0]);
     wclk_delay(3);
     apply_reset;
     // Reset scoreboard state
     q_head = 0; q_tail = 0;
-    assert_flag(empty, 1, "empty after mid-op reset");
-    assert_flag(full,  0, "not full after mid-op reset");
+    assert_flag(empty, 1, "empty after sudden reset");
+    assert_flag(full,  0, "not full sudden reset");
 
-    // ════════════════════════════════════════════════════════
-    //  TEST 10 : Burst write then burst read (stress)
-    // ════════════════════════════════════════════════════════
-    $display("\n═══ TEST 10 : Stress – 32 words, back-to-back ═══");
+   
+    //  TEST 10 : Many write then Many read (stress)
+    
+    $display("\nTEST 10 : 32 words, back-to-back \n");
     apply_reset;
     q_head = 0; q_tail = 0;
 
@@ -375,14 +378,14 @@ initial begin
         end
         rclk_delay(6);
     end
-    assert_flag(empty, 1, "empty after stress test");
+    assert_flag(empty, 1, "empty after stress test \n");
 
-    // ════════════════════════════════════════════════════════
+   
     //  TEST 11 : almost-full / almost-empty boundary
     //            Write DEPTH-1 → not full; write 1 more → full
-    //            Read 1 → not empty; read rest → empty
-    // ════════════════════════════════════════════════════════
-    $display("\n═══ TEST 11 : Boundary – almost full / almost empty ═══");
+    //            Read 1 → not empty; read read remaining → empty
+
+    $display("\nTEST 11 : Boundary - almost full / almost empty \n");
     apply_reset;
     q_head = 0; q_tail = 0;
 
@@ -414,10 +417,10 @@ initial begin
     rclk_delay(8);
     assert_flag(empty, 1, "empty after reading all from almost-full");
 
-    // ════════════════════════════════════════════════════════
+   
     //  TEST 12 : Slow writer, fast reader
-    // ════════════════════════════════════════════════════════
-    $display("\n═══ TEST 12 : Slow writer fast reader ═══");
+  
+    $display("\nTEST 12 : Slow writer fast reader\n");
     apply_reset;
     q_head = 0; q_tail = 0;
 
@@ -430,7 +433,8 @@ initial begin
             end
         end
         begin : fast_reader
-            repeat(8) begin
+            repeat(8)
+             begin
                 // Poll until not empty, then read
                 while (empty) @(posedge read_clk);
                 read_one(rdata);
@@ -442,10 +446,10 @@ initial begin
     rclk_delay(8);
     assert_flag(empty, 1, "empty after slow-writer test");
 
-    // ════════════════════════════════════════════════════════
+  
     //  TEST 13 : Fast writer, slow reader
-    // ════════════════════════════════════════════════════════
-    $display("\n═══ TEST 13 : Fast writer slow reader ═══");
+
+    $display("\n TEST 13 : Fast writer slow reader \n");
     apply_reset;
     q_head = 0; q_tail = 0;
 
@@ -469,22 +473,22 @@ initial begin
     rclk_delay(8);
     assert_flag(empty, 1, "empty after slow-reader test");
 
-    // ════════════════════════════════════════════════════════
+
     //  Summary
-    // ════════════════════════════════════════════════════════
-    $display("\n═══════════════════════════════════════");
-    $display("  Results : %0d PASS   %0d FAIL", pass_cnt, fail_cnt);
-    $display("═══════════════════════════════════════\n");
+
+  
+    $display(" \n \n !!!!! Results !!!!!: %0d PASS   %0d FAIL", pass_cnt, fail_cnt);
+    
 
     $finish;
 end
 
-// ─────────────────────────────────────────────────────────────
-//  Timeout watchdog
-// ─────────────────────────────────────────────────────────────
+
+//  Check Simulation Timeout 
+
 initial begin
     #500000;
-    $display("TIMEOUT: simulation exceeded limit");
+    $display(" TIMEOUT: simulation exceeded limit ");
     $finish;
 end
 
