@@ -1,4 +1,4 @@
-# Parametrized Asynchronous (Dual-Clock) FIFO
+# Parametrised Asynchronous (Dual-Clock) FIFO
 
 An efficient, robust Verilog implementation of an Asynchronous (Dual-Clock) FIFO designed to safely transfer data packets across completely independent, non-synchronized clock domains (e.g., between a slower write-side processing core and a high-speed read-side peripheral). 
 
