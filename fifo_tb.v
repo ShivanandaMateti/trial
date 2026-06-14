@@ -110,14 +110,14 @@ task check_read;
     input [63:0]       test_id;
     begin
         if (q_head == q_tail) begin
-            $display("ERROR [T%0d] Read data 0x%0h but queue is empty!", test_id, actual);
+            $display("ERROR [T-%0d] Read data 0x%0h but queue is empty!", test_id, actual);
             fail_cnt = fail_cnt + 1;
         end else if (actual !== ref_queue[q_head]) begin
-            $display("FAIL [T%0d] Expected:0x%0h  Got:0x%0h",
+            $display("FAIL [T-%0d] Expected:0x%0h  Got:0x%0h",
                      test_id, ref_queue[q_head], actual);
                      fail_cnt = fail_cnt + 1;
         end else begin
-            $display("PASS [T%0d] Expected:0x%0h  Got:0x%0h",test_id,ref_queue[q_head],actual);
+            $display("PASS [T-%0d] Expected:0x%0h  Got:0x%0h",test_id,ref_queue[q_head],actual);
             pass_cnt = pass_cnt + 1;
         end
         q_head = q_head + 1;
@@ -477,7 +477,7 @@ initial begin
     //  Summary
 
   
-    $display(" \n \n !!!!! Results !!!!!: %0d PASS   %0d FAIL", pass_cnt, fail_cnt);
+    $display(" \n \n !!!!! Results !!!!!  : %0d PASS   %0d FAIL", pass_cnt, fail_cnt);
     
 
     $finish;
