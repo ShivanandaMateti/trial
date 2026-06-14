@@ -71,3 +71,12 @@ Ensure you have an HDL Simulator installed (e.g., **Icarus Verilog**, **ModelSim
 1. Compile the source design structures and testbench together:
    ```bash
    iverilog -o fifo_sim fifo_tb.v fifo_top.v
+2. Execute the compiled simulation binary to generate log statements and VCD trace files:
+   ```bash
+   vvp fifo_sim
+3. Open the wave outputs for graphical investigation:
+   ```bash
+   gtkwave fifo_tb.vcd
+
+   
+
